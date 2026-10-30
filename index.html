@@ -35,7 +35,7 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getFirestore,collection,addDoc,getDocs,doc,updateDoc,deleteDoc,query,orderBy,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const firebaseConfig={apiKey:"AIzaSyB6Q6v45wSfO01CxWrNJ7a7otiTiayDzkY",authDomain:"ibn-rushd-repor.firebaseapp.com",projectId:"ibn-rushd-repor",storageBucket:"ibn-rushd-repor.firebasestorage.app",messagingSenderId:"592538757454",appId:"1:592538757454:web:a24c2a4f46c71efe8ad61f",measurementId:"G-8J6YKJYQN5"};
-const ADMIN_UID="REPLACE_WITH_ADMIN_UID";
+const ADMIN_UID="vlnY7v8ip9ZaPEAYUFmMLfK6hA82";
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const $=id=>document.getElementById(id);const status=(t,k="ok")=>{$("status").textContent=t;$("status").className="status "+k;};
 $("date").value=new Date().toLocaleDateString("en-CA");
