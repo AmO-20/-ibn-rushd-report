@@ -1,1 +1,193 @@
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التقارير السابقة | مدارس ابن رشد</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{font-family:Tahoma,Arial;background:#f1f5f2;margin:0;color:#20352a}
+header{background:linear-gradient(120deg,#14532d,#228653);color:white;padding:25px;text-align:center}
+main{max-width:950px;margin:25px auto;padding:15px}
+.card{background:white;padding:20px;margin:15px 0;border-radius:12px;box-shadow:0 2px 10px #0001}
+input,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #ccc;margin:5px}
+button{background:#176b3a;color:white;border:0;cursor:pointer}
+button:hover{background:#104d2a}
+.report{border-right:5px solid #228653}
+.field{padding:8px;border-bottom:1px solid #eee;white-space:pre-wrap}
+.field b{color:#176b3a}
+img{max-width:220px;max-height:220px;object-fit:contain;margin:8px;border-radius:8px}
+#content{display:none}
+#status{padding:12px;color:#9b2525}
+@media print{header,#login,#filters,#printBtn{display:none!important}body{background:white}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<header>
+<h2>مدارس ابن رشد</h2>
+<h3>أرشيف التقارير اليومية</h3>
+</header>
+
+<main>
+<section id="login" class="card">
+<h3>الدخول إلى التقارير السابقة</h3>
+<input id="password" type="password" placeholder="كلمة المرور">
+<button onclick="unlock()">دخول</button>
+<div id="loginMsg"></div>
+</section>
+
+<section id="content">
+<div class="card" id="filters">
+<h3>البحث في التقارير</h3>
+<input type="date" id="filterDate">
+<input type="text" id="search" placeholder="بحث باسم معد التقرير أو الموقع">
+<button onclick="loadReports()">بحث</button>
+<button onclick="clearFilters()">عرض الكل</button>
+<button id="printBtn" onclick="window.print()">طباعة / حفظ PDF</button>
+</div>
+<div id="status">جاري تحميل التقارير...</div>
+<div id="reports"></div>
+</section>
+</main>
+
+<script>
+const SUPABASE_URL = "https://wikhapgreyavzwcrzinf.supabase.co";
+const SUPABASE_ANON_KEY = "ضع_هنا_مفتاح_anon_أو_publishable";
+
+const VIEW_PASSWORD = "IbnRushd-2026";
+const BUCKET = "school-reports";
+
+const db = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+function unlock(){
+  if(document.getElementById("password").value === VIEW_PASSWORD){
+    document.getElementById("login").style.display="none";
+    document.getElementById("content").style.display="block";
+    loadReports();
+  }else{
+    document.getElementById("loginMsg").textContent="كلمة المرور غير صحيحة";
+  }
+}
+
+function parseDetails(row){
+  try{
+    return typeof row.report_details==="string"
+      ? JSON.parse(row.report_details)
+      : row.report_details || {};
+  }catch(e){return {}}
+}
+
+function showValue(value){
+  if(value===null || value===undefined || value==="") return "—";
+  if(Array.isArray(value)) return value.map(showValue).join("، ");
+  if(typeof value==="object") return Object.entries(value)
+    .map(([k,v])=>k+": "+showValue(v)).join(" | ");
+  if(typeof value==="boolean") return value?"نعم":"لا";
+  return String(value);
+}
+
+function addField(parent,label,value){
+  const div=document.createElement("div");
+  div.className="field";
+  const b=document.createElement("b");
+  b.textContent=label+": ";
+  div.appendChild(b);
+  div.appendChild(document.createTextNode(showValue(value)));
+  parent.appendChild(div);
+}
+
+async function imageUrl(path){
+  if(!path) return null;
+  if(typeof path==="object") path=path.path || path.url || "";
+  if(typeof path!=="string") return null;
+  if(path.startsWith("http")) return path;
+
+  const clean=path.replace(/^\/+/,"");
+  const {data,error}=await db.storage.from(BUCKET)
+    .createSignedUrl(clean,3600);
+  if(error) return null;
+  return data.signedUrl;
+}
+
+async function addImages(parent,row,data){
+  let paths=row.image_paths || data.image_paths || [];
+  if(typeof paths==="string"){
+    try{paths=JSON.parse(paths)}catch(e){paths=[paths]}
+  }
+  if(!Array.isArray(paths)) paths=[paths];
+
+  for(const path of paths){
+    const url=await imageUrl(path);
+    if(url){
+      const img=document.createElement("img");
+      img.src=url;
+      img.alt="صورة مرفقة بالتقرير";
+      img.loading="lazy";
+      parent.appendChild(img);
+    }
+  }
+}
+
+async function loadReports(){
+  const status=document.getElementById("status");
+  const container=document.getElementById("reports");
+  container.replaceChildren();
+  status.textContent="جاري تحميل التقارير...";
+
+  const {data,error}=await db.from("school_reports")
+    .select("*")
+    .order("report_date",{ascending:false});
+
+  if(error){
+    status.textContent="تعذر تحميل التقارير: "+error.message;
+    return;
+  }
+
+  const date=document.getElementById("filterDate").value;
+  const search=document.getElementById("search").value.trim();
+
+  const filtered=(data||[]).filter(row=>{
+    const details=parseDetails(row);
+    const text=[
+      row.report_date,row.location,row.absent_teachers,
+      row.late_teachers,details.reporter,details.location
+    ].map(x=>String(x||"")).join(" ");
+    return (!date || row.report_date===date) &&
+      (!search || text.includes(search));
+  });
+
+  status.textContent="عدد التقارير: "+filtered.length;
+
+  for(const row of filtered){
+    const details=parseDetails(row);
+    const card=document.createElement("article");
+    card.className="card report";
+
+    const title=document.createElement("h3");
+    title.textContent="تقرير يوم "+(row.report_date||"غير محدد");
+    card.appendChild(title);
+
+    const excluded=["image_paths"];
+    for(const [key,value] of Object.entries(details)){
+      if(!excluded.includes(key)) addField(card,key,value);
+    }
+
+    if(row.location) addField(card,"الموقع",row.location);
+    if(row.absent_teachers) addField(card,"المعلمون الغائبون",row.absent_teachers);
+    if(row.late_teachers) addField(card,"المعلمون المتأخرون",row.late_teachers);
+
+    await addImages(card,row,details);
+    container.appendChild(card);
+  }
+}
+
+function clearFilters(){
+  document.getElementById("filterDate").value="";
+  document.getElementById("search").value="";
+  loadReports();
+}
+</script>
+</body>
+</html>
