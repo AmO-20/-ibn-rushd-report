@@ -31,8 +31,10 @@ img{max-width:220px;max-height:220px;object-fit:contain;margin:8px;border-radius
 </header>
 
 <main>
+
 <section id="login" class="card">
-<h3>الدخول إلى التقارير السابقة</h3>
+<h3>تسجيل الدخول إلى أرشيف التقارير</h3>
+<input id="email" type="email" placeholder="البريد الإلكتروني">
 <input id="password" type="password" placeholder="كلمة المرور">
 <button onclick="unlock()">دخول</button>
 <div id="loginMsg"></div>
@@ -61,15 +63,29 @@ const BUCKET = "school-reports";
 
 const db = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-function unlock(){
-  if(document.getElementById("password").value === VIEW_PASSWORD){
-    document.getElementById("login").style.display="none";
-    document.getElementById("content").style.display="block";
-    loadReports();
-  }else{
-    document.getElementById("loginMsg").textContent="كلمة المرور غير صحيحة";
+
+async function unlock(){
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("loginMsg");
+
+  msg.textContent = "جاري التحقق من الحساب...";
+
+  const {data,error} = await db.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if(error){
+    msg.textContent = "تعذر تسجيل الدخول: " + error.message;
+    return;
   }
+
+  document.getElementById("login").style.display = "none";
+  document.getElementById("content").style.display = "block";
+  loadReports();
 }
+
 
 function parseDetails(row){
   try{
