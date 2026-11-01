@@ -15,7 +15,24 @@ input,button{font:inherit;padding:12px;border-radius:8px;border:1px solid #ccc;m
 button{background:#176b3a;color:white;border:0;cursor:pointer}
 button:hover{background:#104d2a}
 .report{border-right:5px solid #228653}
-.field{padding:8px;border-bottom:1px solid #eee;white-space:pre-wrap}
+
+.field{
+  padding:12px;
+  margin:8px 0;
+  background:#f7faf8;
+  border-radius:8px;
+  border-right:4px solid #228653;
+  color:#34443a;
+  white-space:pre-wrap;
+  line-height:1.9;
+}
+.field b{
+  display:block;
+  color:#176b3a;
+  font-size:15px;
+  margin-bottom:4px;
+}
+
 .field b{color:#176b3a}
 img{max-width:220px;max-height:220px;object-fit:contain;margin:8px;border-radius:8px}
 #content{display:none}
@@ -94,6 +111,41 @@ function parseDetails(row){
       : row.report_details || {};
   }catch(e){return {}}
 }
+
+const labels = {
+reportDate:"تاريخ التقرير",
+reporter:"معد التقرير",
+location:"الموقع",
+shift:"الفترة",
+cleanliness:"متابعة النظافة",
+cleanNotes:"ملاحظات النظافة",
+cleanlinessLocations:"تقييم المرافق",
+violations:"المخالفات",
+notes:"ملاحظات عامة",
+educationAnswers:"الجوانب التربوية",
+assaultType:"نوع الاعتداء",
+absenceDescription:"وصف الغياب",
+verbal:"اعتداء لفظي",
+physical:"اعتداء جسدي",
+studentNames:"أسماء الطلاب",
+classes:"الفصول",
+absenceCount:"حالات الغياب",
+discipline:"الانضباط",
+absentTeachers:"المعلمون الغائبون",
+lateTeachers:"المعلمون المتأخرون",
+image_paths:"الصور المرفقة",
+date:"التاريخ",
+report_details:"تفاصيل التقرير",
+other_location:"موقع آخر",
+cleanlinessRating:"تقييم النظافة",
+observation:"الملاحظات",
+observationDescription:"وصف الملاحظة",
+teacher:"المعلم",
+subject:"المادة",
+className:"الفصل",
+period:"الحصة",
+place:"المكان"
+};
 
 function showValue(value){
   if(value===null || value===undefined || value==="") return "—";
@@ -186,9 +238,13 @@ async function loadReports(){
     card.appendChild(title);
 
     const excluded=["image_paths"];
-    for(const [key,value] of Object.entries(details)){
-      if(!excluded.includes(key)) addField(card,key,value);
-    }
+    
+for(const [key,value] of Object.entries(details)){
+  if(!excluded.includes(key)){
+    addField(card,labels[key] || key,value);
+  }
+}
+
 
     if(row.location) addField(card,"الموقع",row.location);
     if(row.absent_teachers) addField(card,"المعلمون الغائبون",row.absent_teachers);
