@@ -63,8 +63,50 @@ async function emailReportPdf(d){
  if(!response.ok) throw new Error(result.error||result.message||`تعذر إرسال البريد (HTTP ${response.status})`);
  return result;
 }
-$('reportForm').onsubmit=async e=>{e.preventDefault();if(val('formPass')!=='4321'||!val('reporter')||!val('location')||!val('date')){status('تحقق من كلمة المرور والاسم والموقع والتاريخ',true);return}const b=$('send');b.disabled=true;try{status('جارٍ حفظ التقرير...');const imagePaths=await uploadViolationImage($('violationImage').files[0]);const d=payload();const {error}=await supabase.from('school_reports').insert({report_date:d.reportDate,location:d.location,other_location:'',absent_teachers:d.absentTeachers,late_teachers:d.lateTeachers,report_details:JSON.stringify(d),image_paths:imagePaths});if(error)throw error;let emailMessage='';try{status('تم حفظ التقرير. جارٍ تجهيز ملف PDF وإرساله إلى البريد...');await emailReportPdf(d);emailMessage=' وتم إرسال نسخة PDF إلى بريدك.'}catch(mailErr){emailMessage=' لكن تعذر إرسال البريد: '+(mailErr.message||'خطأ غير معروف')+'؛ التقرير محفوظ ويمكن إعادة المحاولة لاحقًا.'}$('reportForm').reset();$('date').value=today();showStep(0);status('تم حفظ التقرير بنجاح في قاعدة البيانات.'+emailMessage,!emailMessage.includes('تم إرسال'));}catch(err){status('تعذر حفظ التقرير: '+(err.message||'تحقق من صلاحيات Supabase والجداول.'),true)}finally{b.disabled=false}};
-$('reportForm').addEventListener('reset',()=>setTimeout(()=>{$('date').value=today();showStep(0)},0));
+ 
+$('reportForm').onsubmit=async e=>{
+e.preventDefault();
+
+if(val('formPass')!=='4321'||!val('reporter')||!val('location')||!val('date')){
+status('تحقق من كلمة المرور والاسم والموقع والتاريخ',true);
+return;
+}
+
+const b=$('send');
+b.disabled=true;
+
+try{
+status('جارٍ حفظ التقرير...');
+
+const imagePaths=await uploadViolationImage($('violationImage').files[0]);
+const d=payload();
+
+const {error}=await supabase.from('school_reports').insert({
+report_date:d.reportDate,
+location:d.location,
+other_location:'',
+absent_teachers:d.absentTeachers,
+late_teachers:d.lateTeachers,
+report_details:JSON.stringify(d),
+image_paths:imagePaths
+});
+
+if(error) throw error;
+
+$('reportForm').reset();
+$('date').value=today();
+showStep(0);
+
+status('تم استلام التقرير بنجاح، شكرًا لكم.',false);
+
+}catch(err){
+status('تعذر حفظ التقرير: '+(err.message||'تحقق من الاتصال وقاعدة البيانات.'),true);
+}finally{
+b.disabled=false;
+}
+};
+
+ $('reportForm').addEventListener('reset',()=>setTimeout(()=>{$('date').value=today();showStep(0)},0));
 const labels={educationAnswers:'الجوانب التربوية',assaultType:'نوع الاعتداء',absenceDescription:'وصف الغياب',reportDate:'التاريخ',reporter:'معد التقرير',location:'الموقع',shift:'الفترة',cleanliness:'النظافة',cleanNotes:'ملاحظات النظافة',violations:'المخالفات',notes:'ملاحظات عامة',verbal:'اعتداء لفظي',physical:'اعتداء جسدي',studentNames:'أسماء الطلاب',classes:'الفصول',absenceCount:'حالات الغياب',discipline:'الانضباط',absentTeachers:'المعلمون الغائبون',lateTeachers:'المعلمون المتأخرون',cleanlinessLocations:'تقييم المرافق'};
 function node(parent,tag,content){const el=document.createElement(tag);el.textContent=content??'—';parent.append(el);return el}
 function display(v){if(Array.isArray(v))return v.map(x=>typeof x==='object'?Object.values(x).filter(Boolean).join(' — '):String(x)).join(' | ')||'—';if(typeof v==='boolean')return v?'نعم':'لا';return v===null||v===undefined||v===''?'—':String(v)}
